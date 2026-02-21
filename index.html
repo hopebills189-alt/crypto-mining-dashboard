@@ -3,49 +3,59 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Crypto Mining Dashboard - Benin City Miners</title>
+  <title>Crypto Mining Dashboard</title>
   <link rel="stylesheet" href="style.css"/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <!-- Chart.js for sparklines -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <header>
     <h1>Crypto Mining Dashboard ⛏️</h1>
-    <p>Real-time profitability for miners in Nigeria (NGN prices included)</p>
+    <p>Real-time profitability calculator & market overview for global miners</p>
   </header>
 
   <main>
-    <!-- Section 1: Live Prices & Top Coins -->
     <section id="market-overview">
-      <h2>Live Mineable Coins</h2>
-      <div id="coins-grid"></div>
+      <h2>Top Mineable Coins (Live Data)</h2>
+      <div id="loading" class="loading">Loading market data...</div>
+      <div id="coins-grid" class="hidden"></div>
     </section>
 
-    <!-- Section 2: Profit Calculator -->
     <section id="calculator">
       <h2>Profitability Calculator</h2>
       <form id="calc-form">
-        <label>Electricity Cost (₦/kWh): <input type="number" id="elec-cost" value="80" step="0.01"/></label>
-        <label>Power Usage (Watts): <input type="number" id="power" value="1500"/></label>
-        <button type="button" onclick="calculateProfits()">Calculate</button>
+        <div class="input-group">
+          <label>Electricity Cost ($/kWh):</label>
+          <input type="number" id="elec-cost" value="0.12" step="0.001" min="0"/>
+        </div>
+        <div class="input-group">
+          <label>Your Hashrate (e.g., MH/s for GPU, TH/s for BTC):</label>
+          <input type="number" id="hashrate" value="100" step="1" min="0"/>
+        </div>
+        <div class="input-group">
+          <label>Power Consumption (Watts):</label>
+          <input type="number" id="power" value="1500" step="1" min="0"/>
+        </div>
+        <button type="button" onclick="calculateProfits()">Calculate Profits</button>
       </form>
-      <div id="results"></div>
+      <div id="results" class="results"></div>
     </section>
 
-    <!-- Section 3: Tips -->
     <section id="tips">
-      <h2>Mining Tips for Nigeria</h2>
+      <h2>Mining Essentials (Global)</h2>
       <ul>
-        <li>Use stable power (inverter/solar if possible – NEPA can kill profits!)</li>
-        <li>Popular pools: F2Pool, ViaBTC, Ethermine (low fees)</li>
-        <li>ASIC for BTC/LTC, GPU rigs for Kaspa/Ergo if you have cards</li>
-        <li>Watch difficulty spikes & coin prices – mining isn't always profit</li>
-        <li>Start small, calculate taxes on earnings</li>
+        <li>Choose pools with low fees (e.g., F2Pool, ViaBTC, NiceHash)</li>
+        <li>Match hardware to algorithm (ASIC for SHA-256 like BTC, GPU for others)</li>
+        <li>Monitor network difficulty & coin price volatility</li>
+        <li>Factor in hardware costs, cooling, and pool fees (\~1-2%)</li>
+        <li>Mining profitability changes fast—use as estimate only</li>
       </ul>
     </section>
   </main>
 
   <footer>
-    <p>Powered by CoinGecko & WhatToMine APIs • Data refreshes every 60s • Not financial advice</p>
+    <p>Powered by CoinGecko & WhatToMine • Auto-refreshes every 60s • Not financial advice</p>
   </footer>
 
   <script src="script.js"></script>
