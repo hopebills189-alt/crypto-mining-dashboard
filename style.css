@@ -1,56 +1,79 @@
 body {
   font-family: 'Inter', sans-serif;
   margin: 0;
-  padding: 0;
-  background: #0f0f1a;
-  color: #e0e0ff;
+  background: #0a0e17;
+  color: #d1d5db;
   line-height: 1.6;
 }
 
 header {
-  background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+  background: linear-gradient(135deg, #1d4ed8, #3b82f6);
   text-align: center;
-  padding: 2rem 1rem;
+  padding: 2.5rem 1rem;
   color: white;
 }
 
-h1, h2 { margin: 0.5rem 0; }
+h1 { margin: 0; font-size: 2.5rem; }
+h2 { font-size: 1.8rem; margin-bottom: 1rem; }
 
-main { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+main { max-width: 1400px; margin: 2rem auto; padding: 0 1rem; }
 
-section { margin-bottom: 3rem; background: #1a1a2e; padding: 1.5rem; border-radius: 12px; }
+section { 
+  background: #111827; 
+  padding: 2rem; 
+  border-radius: 12px; 
+  margin-bottom: 2.5rem; 
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
 
 #coins-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
 }
 
 .coin-card {
-  background: #2a2a4a;
-  padding: 1rem;
-  border-radius: 8px;
+  background: #1f2937;
+  border-radius: 12px;
+  padding: 1.5rem;
   text-align: center;
+  transition: transform 0.2s;
 }
-.coin-card h3 { margin: 0.5rem 0; font-size: 1.2rem; }
-.profit-positive { color: #22c55e; }
-.profit-negative { color: #ef4444; }
+.coin-card:hover { transform: translateY(-5px); }
 
-form label { display: block; margin: 1rem 0; }
-input { padding: 0.5rem; width: 100%; max-width: 200px; border-radius: 6px; border: 1px solid #4b5563; background: #111827; color: white; }
+.coin-name { font-size: 1.4rem; font-weight: 600; margin: 0.5rem 0; }
+.price { font-size: 1.6rem; font-weight: 700; color: #60a5fa; }
+.change-positive { color: #10b981; }
+.change-negative { color: #ef4444; }
+
+canvas { max-height: 80px; margin-top: 1rem; }
+
+form { display: grid; gap: 1.2rem; max-width: 500px; margin: 0 auto; }
+.input-group label { display: block; margin-bottom: 0.4rem; font-weight: 500; }
+input { width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid #4b5563; background: #1f2937; color: white; font-size: 1rem; }
 
 button {
   background: #3b82f6;
   color: white;
   border: none;
-  padding: 0.8rem 1.5rem;
+  padding: 1rem;
   border-radius: 8px;
+  font-size: 1.1rem;
   cursor: pointer;
   font-weight: 600;
 }
-
 button:hover { background: #2563eb; }
 
-footer { text-align: center; padding: 1rem; background: #111827; font-size: 0.9rem; }
+.results { margin-top: 2rem; }
+.profit-positive { color: #10b981; font-weight: bold; }
+.profit-negative { color: #ef4444; font-weight: bold; }
 
-@media (max-width: 600px) { #coins-grid { grid-template-columns: 1fr; } }
+.loading { text-align: center; font-size: 1.2rem; color: #9ca3af; }
+.hidden { display: none; }
+
+ul { padding-left: 1.5rem; }
+footer { text-align: center; padding: 1.5rem; background: #0f172a; font-size: 0.9rem; color: #9ca3af; }
+
+@media (max-width: 768px) {
+  #coins-grid { grid-template-columns: 1fr; }
+}
