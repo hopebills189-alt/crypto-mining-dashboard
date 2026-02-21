@@ -1,105 +1,93 @@
-const COINS = ['bitcoin', 'litecoin', 'kaspa', 'dogecoin', 'monero']; // Add more mineable ones
-const WHAT_TO_MINE_URL = 'https://whattomine.com/coins.json';
+const COINGECKO_IDS = 'bitcoin,litecoin,dogecoin,monero,ethereum-classic,bitcoin-cash,ravencoin,kaspa,zcash'; // Add more PoW coins as needed
 let miningData = {};
+let coingeckoPrices = {};
+let coingeckoMarket = [];
 
-// Fetch WhatToMine data once
-async function loadMiningData() {
-  try {
-    const res = await fetch(WHAT_TO_MINE_URL);
-    const data = await res.json();
-    miningData = data.coins; // Object with coin keys
-  } catch (err) {
-    console.error('WhatToMine fetch failed:', err);
-  }
-}
-
-// Fetch prices from CoinGecko (supports NGN!)
-async function fetchPrices() {
-  const ids = COINS.join(',');
-  const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd,ngn&include_24hr_change=true`;
+async function loadData() {
+  document.getElementById('loading').textContent = 'Fetching mining & price data...';
   
   try {
-    const res = await fetch(url);
-    const prices = await res.json();
-    
-    // Also fetch market data for top coins (per_page=10, but filter mineable)
-    const marketsRes = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=true');
-    const markets = await marketsRes.json();
+    // WhatToMine coins
+    const wtmRes = await fetch('https://whattomine.com/coins.json');
+    const wtm = await wtmRes.json();
+    miningData = wtm.coins || {};
 
-    displayMarket(markets, prices);
+    // CoinGecko prices & market
+    const priceRes = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${COINGECKO_IDS}&vs_currencies=usd&include_24hr_change=true`);
+    coingeckoPrices = await priceRes.json();
+
+    const marketRes = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=' + COINGECKO_IDS + '&order=market_cap_desc&per_page=50&page=1&sparkline=true');
+    coingeckoMarket = await marketRes.json();
+
+    displayCoins();
   } catch (err) {
-    document.getElementById('coins-grid').innerHTML = '<p>Error loading data... Try refresh.</p>';
+    document.getElementById('loading').textContent = 'Error loading data. Check connection or try later.';
+    console.error(err);
   }
 }
 
-function displayMarket(markets, prices) {
+function displayCoins() {
   const grid = document.getElementById('coins-grid');
   grid.innerHTML = '';
+  document.getElementById('loading').classList.add('hidden');
+  grid.classList.remove('hidden');
 
-  COINS.forEach(coinId => {
-    const coinData = markets.find(c => c.id === coinId);
-    if (!coinData) return;
-
-    const p = prices[coinId];
+  coingeckoMarket.forEach(coin => {
     const card = document.createElement('div');
     card.className = 'coin-card';
+    const priceData = coingeckoPrices[coin.id] || {};
+    const change = priceData.usd_24h_change || 0;
+    const changeClass = change > 0 ? 'change-positive' : 'change-negative';
+
+    // Find sparkline data
+    const canvasId = `spark-${coin.id}`;
     card.innerHTML = `
-      <h3>\( {coinData.name} ( \){coinData.symbol.toUpperCase()})</h3>
-      <p>\[ {p.usd.toLocaleString()} ≈ ₦${p.ngn.toLocaleString()}</p>
-      <p>24h: <span style="color:${p.ngn_24h_change > 0 ? '#22c55e' : '#ef4444'}">
-        ${p.ngn_24h_change.toFixed(2)}%</span></p>
-      <small>Market Cap: \]{coinData.market_cap.toLocaleString()}</small>
+      <div class="coin-name">\( {coin.name} ( \){coin.symbol.toUpperCase()})</div>
+      <div class="price">\[ {coin.current_price?.toLocaleString() || 'N/A'}</div>
+      <p>24h: <span class="\( {changeClass}"> \){change.toFixed(2)}%</span></p>
+      <p>Market Cap: \]{coin.market_cap?.toLocaleString() || 'N/A'}</p>
+      <canvas id="${canvasId}" width="200" height="80"></canvas>
     `;
     grid.appendChild(card);
+
+    // Sparkline chart
+    if (coin.sparkline_in_7d?.price?.length > 0) {
+      new Chart(document.getElementById(canvasId), {
+        type: 'line',
+        data: { datasets: [{ data: coin.sparkline_in_7d.price, borderColor: '#60a5fa', borderWidth: 2, fill: false, pointRadius: 0 }] },
+        options: { scales: { x: { display: false }, y: { display: false } }, plugins: { legend: { display: false } }, elements: { line: { tension: 0.4 } } }
+      });
+    }
   });
 }
 
-// Profit calc (simplified – uses WhatToMine estimated_rewards per unit)
 async function calculateProfits() {
-  if (Object.keys(miningData).length === 0) {
-    await loadMiningData();
-  }
+  const elecCost = parseFloat(document.getElementById('elec-cost').value) || 0.12;
+  const hashrate = parseFloat(document.getElementById('hashrate').value) || 100;
+  const power = parseFloat(document.getElementById('power').value) || 1500;
 
-  const elecCostNGN = parseFloat(document.getElementById('elec-cost').value) || 80;
-  const powerW = parseFloat(document.getElementById('power').value) || 1500;
-  const dailyPowerCostNGN = (powerW / 1000) * 24 * elecCostNGN;
+  const dailyPowerCostUSD = (power / 1000) * 24 * elecCost;
 
-  let html = '<h3>Estimated Daily Profits (NGN) - After Power Cost</h3>';
+  let html = '<h3>Estimated Daily Profits (USD) – After Electricity</h3><p>Note: Simplified; assumes linear scaling & no pool fees/hardware depreciation.</p>';
 
-  for (let coinId of COINS) {
-    // Map CoinGecko id to WhatToMine tag (approximate – you can refine)
-    const wtmTagMap = {
-      bitcoin: 'Bitcoin-SHA256',
-      litecoin: 'Litecoin-Scrypt',
-      kaspa: 'Kaspa-kHeavyHash', // Check actual tags in miningData
-      dogecoin: 'Dogecoin-Scrypt',
-      monero: 'Monero-RandomX'
-    };
-    const tag = wtmTagMap[coinId] || coinId.charAt(0).toUpperCase() + coinId.slice(1);
-    const coin = Object.values(miningData).find(c => c.tag.toLowerCase().includes(coinId) || c.name.toLowerCase().includes(coinId));
-
-    if (!coin) continue;
-
-    // estimated_rewards is rewards per some unit (e.g., per MH/s or GH/s) – adjust factor
-    // For simplicity, assume user's hash rate scales linearly (real mining needs algorithm match!)
-    const assumedHashFactor = 1; // Customize per algo (e.g., for GPU MH/s)
-    const dailyRevenueUSD = coin.estimated_rewards * assumedHashFactor * 24; // Rough!
-    const dailyRevenueNGN = dailyRevenueUSD * (await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=ngn`).then(r=>r.json()).then(d=>d[coinId].ngn));
-
-    const profitNGN = dailyRevenueNGN - dailyPowerCostNGN;
+  // Example: Loop over some WhatToMine coins (you can filter by algorithm if you add more inputs)
+  Object.values(miningData).slice(0, 8).forEach(coin => {  // Top \~8 for demo
+    const revenuePerUnitDay = coin.estimated_rewards || 0;  // rewards per unit hash/day
+    const unit = 'MH/s'; // Assume; in real app, match to coin.algorithm
+    const dailyRevenueUSD = hashrate * revenuePerUnitDay;
+    const dailyProfitUSD = dailyRevenueUSD - dailyPowerCostUSD;
 
     html += `
-      <p><strong>\( {coin.name}</strong>: ₦ \){profitNGN.toFixed(2)} 
-        <span class="${profitNGN > 0 ? 'profit-positive' : 'profit-negative'}">
-          (\( {profitNGN > 0 ? '+' : ''} \){profitNGN.toFixed(2)} NGN)
-        </span></p>
+      <p><strong>\( {coin.name} ( \){coin.tag})</strong>: \[ {dailyProfitUSD.toFixed(2)} 
+        <span class="${dailyProfitUSD > 0 ? 'profit-positive' : 'profit-negative'}">
+          (\( {dailyProfitUSD > 0 ? '+' : ''} \){dailyProfitUSD.toFixed(2)} USD)
+        </span> (Power cost: \]{dailyPowerCostUSD.toFixed(2)})</p>
     `;
-  }
+  });
 
-  document.getElementById('results').innerHTML = html || '<p>No data for selected coins yet.</p>';
+  document.getElementById('results').innerHTML = html || '<p>No mining data available yet.</p>';
 }
 
-// Init
-loadMiningData();
-fetchPrices();
-setInterval(fetchPrices, 60000); // Refresh prices
+// Init & refresh
+loadData();
+setInterval(loadData, 60000);
